@@ -1,38 +1,161 @@
-function getCookie(name) {
-let cookies = ; ${document.cookie};
-let parts = cookies.split(; ${name}=);
-if (parts.length === 2) return parts.pop().split(';').shift();
+// Función para obtener una cookie por su nombre
+function obtenerCookie(nombre) {
+    const cookies = `; ${document.cookie}`;
+    const partes = cookies.split(`; ${nombre}=`);
+    if (partes.length === 2) {
+        return partes.pop().split(';').shift();
+    }
+    return null; // Manejar el caso en que no se encuentre la cookie
 }
 
-function sleep(ms) {
-return new Promise(resolve => setTimeout(resolve, ms));
+// Función para pausar la ejecución por un tiempo determinado
+function esperar(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function afterUrlGenerator(cursor) {
-return https://www.instagram.com/graphql/query/?query_hash=3dec7e2c57367ef3da3d987d89f9dbc8&variables={"id":"${ds_user_id}","include_reel":"true","fetch_mutual":"false","first":"24","after":"${cursor}"};
+// Función para traducir texto basado en el idioma
+function traducir(texto, idioma) {
+    const traducciones = {
+        'es': {
+            progreso: 'Progreso',
+            noTeSiguen: 'Estos usuarios no te siguen de vuelta:',
+            durmiendo: 'Descansando 10 segundos para evitar bloqueo temporal',
+            todoHecho: 'Todo listo jefx',
+            seguidoresInstagram: 'Seguidores de Instagram',
+            dejarDeSeguirSeleccionados: 'Dejar de seguir seleccionados',
+            dejasteDeSeguir: 'Dejaste de seguir a',
+            errorDejarDeSeguir: 'Error al dejar de seguir a'
+        },
+        'en': {
+            progreso: 'Progress',
+            noTeSiguen: 'These users do not follow you back:',
+            durmiendo: 'Sleeping for 10 seconds to avoid temporary block',
+            todoHecho: 'All DONE!',
+            seguidoresInstagram: 'Instagram Followers',
+            dejarDeSeguirSeleccionados: 'Unfollow selected',
+            dejasteDeSeguir: 'Unfollowed',
+            errorDejarDeSeguir: 'Error unfollowing'
+        }
+        // Agregar más idiomas según sea necesario
+    };
+    return (traducciones[idioma] && traducciones[idioma][texto]) || texto;
 }
 
-function unfollowUserUrlGenerator(userId) {
-return https://www.instagram.com/web/friendships/${userId}/unfollow/;
+// Función para generar la URL de la siguiente página de usuarios seguidos
+function generarUrlSiguiente(cursor, ds_user_id) {
+    return `https://www.instagram.com/graphql/query/?query_hash=3dec7e2c57367ef3da3d987d89f9dbc8&variables={"id":"${ds_user_id}","include_reel":"true","fetch_mutual":"false","first":"24","after":"${cursor}"}`;
 }
 
-(async function() {
-let csrftoken = getCookie("csrftoken");
-let ds_user_id = getCookie("ds_user_id");
-let initialURL = https://www.instagram.com/graphql/query/?query_hash=3dec7e2c57367ef3da3d987d89f9dbc8&variables={"id":"${ds_user_id}","include_reel":"true","fetch_mutual":"false","first":"24"};
-let doNext = true;
-let filteredList = [];
-let getUnfollowCounter = 0;
-let scrollCicle = 0;
-let followedPeople = null;
+// Función para generar la URL para dejar de seguir a un usuario
+function generarUrlDejarDeSeguir(userId) {
+    return `https://www.instagram.com/web/friendships/${userId}/unfollow/`;
+}
 
-javascript
+// Función para crear el menú en la página
+function crearMenu() {
+    let menu = document.createElement('div');
+    menu.id = 'instagram-follow-menu';
+    menu.style.position = 'fixed';
+    menu.style.top = '10px';
+    menu.style.right = '10px';
+    menu.style.backgroundColor = getComputedStyle(document.body).backgroundColor;
+    menu.style.border = '1px solid #dbdbdb';
+    menu.style.padding = '10px';
+    menu.style.zIndex = 10000;
+    menu.style.maxHeight = '90vh';
+    menu.style.overflowY = 'scroll';
+    menu.style.borderRadius = '8px';
+    menu.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
 
-async function startScript() {
-    while (doNext) {
-        let response;
+    let titulo = document.createElement('h3');
+    titulo.textContent = traducir('seguidoresInstagram', document.documentElement.lang);
+    titulo.style.color = getComputedStyle(document.body).color;
+    menu.appendChild(titulo);
+
+    let botonDejarDeSeguir = document.createElement('button');
+    botonDejarDeSeguir.textContent = traducir('dejarDeSeguirSeleccionados', document.documentElement.lang);
+    botonDejarDeSeguir.style.backgroundColor = '#3897f0';
+    botonDejarDeSeguir.style.color = '#fff';
+    botonDejarDeSeguir.style.border = 'none';
+    botonDejarDeSeguir.style.borderRadius = '4px';
+    botonDejarDeSeguir.style.padding = '10px';
+    botonDejarDeSeguir.style.cursor = 'pointer';
+    botonDejarDeSeguir.onclick = dejarDeSeguirSeleccionados;
+    menu.appendChild(botonDejarDeSeguir);
+
+    let listaUsuarios = document.createElement('ul');
+    listaUsuarios.id = 'users-list';
+    menu.appendChild(listaUsuarios);
+
+    document.body.appendChild(menu);
+}
+
+// Función para mostrar los usuarios filtrados en el menú
+function mostrarUsuarios(usuarios) {
+    let lista = document.getElementById('users-list');
+    lista.innerHTML = ''; // Limpiar la lista antes de agregar nuevos usuarios
+    usuarios.forEach(user => {
+        let elementoLista = document.createElement('li');
+        elementoLista.style.marginBottom = '10px';
+
+        let checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = user.id;
+
+        let etiqueta = document.createElement('label');
+        etiqueta.textContent = user.username;
+        etiqueta.style.color = getComputedStyle(document.body).color;
+
+        elementoLista.appendChild(checkbox);
+        elementoLista.appendChild(etiqueta);
+        lista.appendChild(elementoLista);
+    });
+}
+
+// Función para dejar de seguir a los usuarios seleccionados
+async function dejarDeSeguirSeleccionados() {
+    let checkboxes = document.querySelectorAll('#users-list input[type="checkbox"]:checked');
+    for (let checkbox of checkboxes) {
+        let userId = checkbox.value;
         try {
-            response = await fetch(initialURL, {
+            await fetch(generarUrlDejarDeSeguir(userId), {
+                method: 'POST',
+                headers: {
+                    'x-csrftoken': obtenerCookie('csrftoken'),
+                    'x-instagram-ajax': '1',
+                    'x-requested-with': 'XMLHttpRequest',
+                }
+            });
+            console.log(`%c ${traducir('dejasteDeSeguir', document.documentElement.lang)} ${userId}`, "background: #000; color: #bada55; font-size: 13px;");
+        } catch (error) {
+            console.error(`%c ${traducir('errorDejarDeSeguir', document.documentElement.lang)} ${userId}: ${error}`, "background: #000; color: #FF0000; font-size: 13px;");
+        }
+        await esperar(1000); // Esperar un segundo entre cada solicitud para evitar bloqueos
+    }
+}
+
+// Función principal asincrónica que inicia el script
+(async function() {
+    let csrftoken = obtenerCookie("csrftoken");
+    let ds_user_id = obtenerCookie("ds_user_id");
+
+    if (!csrftoken || !ds_user_id) {
+        console.error('%c No se pudo obtener csrftoken o ds_user_id de las cookies.', "background: #000; color: #FF0000; font-size: 13px;");
+        return;
+    }
+
+    let idioma = document.documentElement.lang;
+    let urlInicial = `https://www.instagram.com/graphql/query/?query_hash=3dec7e2c57367ef3da3d987d89f9dbc8&variables={"id":"${ds_user_id}","include_reel":"true","fetch_mutual":"false","first":"24"}`;
+    let continuar = true;
+    let listaFiltrada = [];
+    let contadorUsuarios = 0;
+    let cicloDesplazamiento = 0;
+    let totalSeguidos = null;
+
+    while (continuar) {
+        let respuesta;
+        try {
+            respuesta = await fetch(urlInicial, {
                 headers: {
                     'x-csrftoken': csrftoken,
                     'x-instagram-ajax': '1',
@@ -40,112 +163,41 @@ async function startScript() {
                 }
             }).then(res => res.json());
         } catch (error) {
-            console.error('Error en la petición:', error);
+            console.error('%c Error en la petición:', error, "background: #000; color: #FF0000; font-size: 13px;");
             continue;
         }
 
-        if (!followedPeople) {
-            followedPeople = response.data.user.edge_follow.count;
+        if (!totalSeguidos) {
+            totalSeguidos = respuesta.data.user.edge_follow.count;
         }
 
-        doNext = response.data.user.edge_follow.page_info.has_next_page;
-        initialURL = afterUrlGenerator(response.data.user.edge_follow.page_info.end_cursor);
-        getUnfollowCounter += response.data.user.edge_follow.edges.length;
+        continuar = respuesta.data.user.edge_follow.page_info.has_next_page;
+        urlInicial = generarUrlSiguiente(respuesta.data.user.edge_follow.page_info.end_cursor, ds_user_id);
+        contadorUsuarios += respuesta.data.user.edge_follow.edges.length;
 
-        response.data.user.edge_follow.edges.forEach(edge => {
+        respuesta.data.user.edge_follow.edges.forEach(edge => {
             if (!edge.node.follows_viewer) {
-                filteredList.push(edge.node);
+                listaFiltrada.push(edge.node);
             }
         });
 
         console.clear();
-        console.log(`%c Progreso ${getUnfollowCounter}/${followedPeople} (${parseInt(100 * (getUnfollowCounter / followedPeople))}%)`, "background: #222; color: #bada55; font-size: 35px;");
-        console.log("%c Estos usuarios no te siguen de vuelta (en progreso):", "background: #222; color: #FC4119; font-size: 13px;");
-        filteredList.forEach(user => console.log(user.username));
+        console.log(`%c ${traducir('progreso', idioma)} ${contadorUsuarios}/${totalSeguidos} (${parseInt(100 * (contadorUsuarios / totalSeguidos))}%)`, "background: #000; color: #bada55; font-size: 35px;");
+        console.log(`%c ${traducir('noTeSiguen', idioma)}`, "background: #000; color: #FC4119; font-size: 13px;");
+        listaFiltrada.forEach(user => console.log(`%c ${user.username}`, "background: #000; color: #ffffff; font-size: 13px;"));
 
-        await sleep(Math.floor(400 * Math.random()) + 1000);
-        scrollCicle++;
+        await esperar(Math.floor(400 * Math.random()) + 1000);
+        cicloDesplazamiento++;
 
-        if (scrollCicle > 6) {
-            scrollCicle = 0;
-            console.log("%c Durmiendo 10 segundos para evitar bloqueo temporal", "background: #222; color: #FF0000; font-size: 35px;");
-            await sleep(10000);
+        if (cicloDesplazamiento > 6) {
+            cicloDesplazamiento = 0;
+            console.log(`%c ${traducir('durmiendo', idioma)}`, "background: #000; color: #FF0000; font-size: 35px;");
+            await esperar(10000);
         }
     }
 
-    createMenu();
-    displayUsers(filteredList);
+    crearMenu();
+    mostrarUsuarios(listaFiltrada);
 
-    console.log("%c ¡Todo HECHO!", "background: #222; color: #bada55; font-size: 25px;");
-}
-
-function createMenu() {
-    let menu = document.createElement('div');
-    menu.id = 'instagram-follow-menu';
-    menu.style.position = 'fixed';
-    menu.style.top = '10px';
-    menu.style.right = '10px';
-    menu.style.backgroundColor = 'white';
-    menu.style.border = '1px solid black';
-    menu.style.padding = '10px';
-    menu.style.zIndex = 10000;
-    menu.style.maxHeight = '90vh';
-    menu.style.overflowY = 'scroll';
-
-    let title = document.createElement('h3');
-    title.textContent = 'Seguidores de Instagram';
-    menu.appendChild(title);
-
-    let unfollowButton = document.createElement('button');
-    unfollowButton.textContent = 'Dejar de seguir seleccionados';
-    unfollowButton.onclick = unfollowSelected;
-    menu.appendChild(unfollowButton);
-
-    let usersList = document.createElement('ul');
-    usersList.id = 'users-list';
-    menu.appendChild(usersList);
-
-    document.body.appendChild(menu);
-}
-
-function displayUsers(users) {
-    let list = document.getElementById('users-list');
-    users.forEach(user => {
-        let listItem = document.createElement('li');
-        listItem.style.marginBottom = '10px';
-
-        let checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = user.id;
-
-        let label = document.createElement('label');
-        label.textContent = user.username;
-
-        listItem.appendChild(checkbox);
-        listItem.appendChild(label);
-        list.appendChild(listItem);
-    });
-}
-
-async function unfollowSelected() {
-    let checkboxes = document.querySelectorAll('#users-list input[type="checkbox"]:checked');
-    for (let checkbox of checkboxes) {
-        let userId = checkbox.value;
-        try {
-            await fetch(unfollowUserUrlGenerator(userId), {
-                method: 'POST',
-                headers: {
-                    'x-csrftoken': csrftoken,
-                    'x-instagram-ajax': '1',
-                    'x-requested-with': 'XMLHttpRequest',
-                }
-            });
-            console.log(`Dejaste de seguir a ${userId}`);
-        } catch (error) {
-            console.error(`Error al dejar de seguir a ${userId}:`, error);
-        }
-        await sleep(1000); // Esperar un segundo entre cada solicitud para evitar bloqueos
-    }
-}
-
-startScript();
+    console.log(`%c ${traducir('todoHecho', idioma)}`, "background: #000; color: #bada55; font-size: 25px;");
+})();
