@@ -25,7 +25,7 @@ function traducir(texto, idioma) {
             dejarDeSeguirSeleccionados: 'Dejar de seguir seleccionados',
             dejasteDeSeguir: 'Dejaste de seguir a',
             errorDejarDeSeguir: 'Error al dejar de seguir a',
-            avisoLimite: 'Solo se podrán escanear y eliminar de 50 a 100 personas diarias para evitar un bloqueo de cuenta'
+            avisoLimite: 'Solo se podrán escanear y eliminar de 50 a 100 personas diarias para evitar un bloqueo de cuenta, las personas se iran eliminando en un lapso de 5 a 10 segundos para evitar bloqueos'
         },
         'en': {
             progreso: 'Progress',
