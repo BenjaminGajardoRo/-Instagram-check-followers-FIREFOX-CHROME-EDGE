@@ -24,7 +24,8 @@ function traducir(texto, idioma) {
             seguidoresInstagram: 'Seguidores de Instagram',
             dejarDeSeguirSeleccionados: 'Dejar de seguir seleccionados',
             dejasteDeSeguir: 'Dejaste de seguir a',
-            errorDejarDeSeguir: 'Error al dejar de seguir a'
+            errorDejarDeSeguir: 'Error al dejar de seguir a',
+            avisoLimite: 'Solo se podrán escanear y eliminar de 50 a 100 personas diarias para evitar un bloqueo de cuenta'
         },
         'en': {
             progreso: 'Progress',
@@ -34,7 +35,8 @@ function traducir(texto, idioma) {
             seguidoresInstagram: 'Instagram Followers',
             dejarDeSeguirSeleccionados: 'Unfollow selected',
             dejasteDeSeguir: 'Unfollowed',
-            errorDejarDeSeguir: 'Error unfollowing'
+            errorDejarDeSeguir: 'Error unfollowing',
+            avisoLimite: 'Only 50 to 100 people can be scanned and unfollowed daily to avoid account blocking'
         }
         // Agregar más idiomas según sea necesario
     };
@@ -71,6 +73,11 @@ function crearMenu() {
     titulo.textContent = traducir('seguidoresInstagram', document.documentElement.lang);
     titulo.style.color = getComputedStyle(document.body).color;
     menu.appendChild(titulo);
+
+    let aviso = document.createElement('p');
+    aviso.textContent = traducir('avisoLimite', document.documentElement.lang);
+    aviso.style.color = getComputedStyle(document.body).color;
+    menu.appendChild(aviso);
 
     let botonDejarDeSeguir = document.createElement('button');
     botonDejarDeSeguir.textContent = traducir('dejarDeSeguirSeleccionados', document.documentElement.lang);
@@ -115,7 +122,9 @@ function mostrarUsuarios(usuarios) {
 // Función para dejar de seguir a los usuarios seleccionados
 async function dejarDeSeguirSeleccionados() {
     let checkboxes = document.querySelectorAll('#users-list input[type="checkbox"]:checked');
+    let eliminados = 0;
     for (let checkbox of checkboxes) {
+        if (eliminados >= 100) break;
         let userId = checkbox.value;
         try {
             await fetch(generarUrlDejarDeSeguir(userId), {
@@ -130,8 +139,10 @@ async function dejarDeSeguirSeleccionados() {
         } catch (error) {
             console.error(`%c ${traducir('errorDejarDeSeguir', document.documentElement.lang)} ${userId}: ${error}`, "background: #000; color: #FF0000; font-size: 13px;");
         }
-        await esperar(1000); // Esperar un segundo entre cada solicitud para evitar bloqueos
+        eliminados++;
+        await esperar(Math.floor(5000 + Math.random() * 5000)); // Esperar entre 5 a 10 segundos entre cada eliminación
     }
+    location.reload(); // Recargar la página después de las eliminaciones
 }
 
 // Función principal asincrónica que inicia el script
@@ -152,7 +163,7 @@ async function dejarDeSeguirSeleccionados() {
     let cicloDesplazamiento = 0;
     let totalSeguidos = null;
 
-    while (continuar) {
+    while (continuar && contadorUsuarios < 100) {
         let respuesta;
         try {
             respuesta = await fetch(urlInicial, {
