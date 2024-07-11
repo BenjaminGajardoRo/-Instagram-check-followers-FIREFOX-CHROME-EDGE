@@ -170,28 +170,12 @@ async function dejarDeSeguirUsuarios(checkboxes) {
     location.reload(); // Recargar la página después de las eliminaciones
 }
 
-// Función principal asincrónica que inicia el script
-(async function() {
-    let csrftoken = obtenerCookie("csrftoken");
-    let ds_user_id = obtenerCookie("ds_user_id");
-
-    if (!csrftoken || !ds_user_id) {
-        console.error('%c No se pudo obtener csrftoken o ds_user_id de las cookies.', "background: #000; color: #FF0000; font-size: 13px;");
-        return;
-    }
-
-    let idioma = document.documentElement.lang;
-    let urlInicial = `https://www.instagram.com/graphql/query/?query_hash=3dec7e2c57367ef3da3d987d89f9dbc8&variables={"id":"${ds_user_id}","include_reel":"true","fetch_mutual":"false","first":"24"}`;
-    let continuar = true;
-    let listaFiltrada = [];
-    let contadorUsuarios = 0;
-    let cicloDesplazamiento = 0;
-    let totalSeguidos = null;
-
-    while (continuar && contadorUsuarios < 100) {
+// Función para cargar más usuarios seguidos
+async function cargarUsuarios(url, csrftoken, ds_user_id, listaFiltrada, contadorUsuarios, totalSeguidos, idioma) {
+    while (contadorUsuarios < 100 && url) {
         let respuesta;
         try {
-            respuesta = await fetch(urlInicial, {
+            respuesta = await fetch(url, {
                 headers: {
                     'x-csrftoken': csrftoken,
                     'x-instagram-ajax': '1',
@@ -200,15 +184,15 @@ async function dejarDeSeguirUsuarios(checkboxes) {
             }).then(res => res.json());
         } catch (error) {
             console.error('%c Error en la petición:', error, "background: #000; color: #FF0000; font-size: 13px;");
-            continue;
+            return;
         }
 
         if (!totalSeguidos) {
             totalSeguidos = respuesta.data.user.edge_follow.count;
         }
 
-        continuar = respuesta.data.user.edge_follow.page_info.has_next_page;
-        urlInicial = generarUrlSiguiente(respuesta.data.user.edge_follow.page_info.end_cursor, ds_user_id);
+        const pageInfo = respuesta.data.user.edge_follow.page_info;
+        url = pageInfo.has_next_page ? generarUrlSiguiente(pageInfo.end_cursor, ds_user_id) : null;
         contadorUsuarios += respuesta.data.user.edge_follow.edges.length;
 
         respuesta.data.user.edge_follow.edges.forEach(edge => {
@@ -223,14 +207,26 @@ async function dejarDeSeguirUsuarios(checkboxes) {
         listaFiltrada.forEach(user => console.log(`%c ${user.username}`, "background: #000; color: #ffffff; font-size: 13px;"));
 
         await esperar(Math.floor(400 * Math.random()) + 1000);
-        cicloDesplazamiento++;
-
-        if (cicloDesplazamiento > 6) {
-            cicloDesplazamiento = 0;
-            console.log(`%c ${traducir('durmiendo', idioma)}`, "background: #000; color: #FF0000; font-size: 35px;");
-            await esperar(10000);
-        }
     }
+}
+
+// Función principal asincrónica que inicia el script
+(async function() {
+    let csrftoken = obtenerCookie("csrftoken");
+    let ds_user_id = obtenerCookie("ds_user_id");
+
+    if (!csrftoken || !ds_user_id) {
+        console.error('%c No se pudo obtener csrftoken o ds_user_id de las cookies.', "background: #000; color: #FF0000; font-size: 13px;");
+        return;
+    }
+
+    let idioma = document.documentElement.lang;
+    let urlInicial = `https://www.instagram.com/graphql/query/?query_hash=3dec7e2c57367ef3da3d987d89f9dbc8&variables={"id":"${ds_user_id}","include_reel":"true","fetch_mutual":"false","first":"24"}`;
+    let listaFiltrada = [];
+    let contadorUsuarios = 0;
+    let totalSeguidos = null;
+
+    await cargarUsuarios(urlInicial, csrftoken, ds_user_id, listaFiltrada, contadorUsuarios, totalSeguidos, idioma);
 
     crearMenu();
     mostrarUsuarios(listaFiltrada);
