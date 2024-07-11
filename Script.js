@@ -171,8 +171,10 @@ async function dejarDeSeguirUsuarios(checkboxes) {
 }
 
 // Función para cargar más usuarios seguidos
-async function cargarUsuarios(url, csrftoken, ds_user_id, listaFiltrada, contadorUsuarios, totalSeguidos, idioma) {
-    while (contadorUsuarios < 100 && url) {
+async function cargarUsuarios(url, csrftoken, ds_user_id, listaFiltrada, idioma) {
+    let totalSeguidos = 0;
+    let contadorUsuarios = 0;
+    while (url) {
         let respuesta;
         try {
             respuesta = await fetch(url, {
@@ -223,10 +225,8 @@ async function cargarUsuarios(url, csrftoken, ds_user_id, listaFiltrada, contado
     let idioma = document.documentElement.lang;
     let urlInicial = `https://www.instagram.com/graphql/query/?query_hash=3dec7e2c57367ef3da3d987d89f9dbc8&variables={"id":"${ds_user_id}","include_reel":"true","fetch_mutual":"false","first":"24"}`;
     let listaFiltrada = [];
-    let contadorUsuarios = 0;
-    let totalSeguidos = null;
 
-    await cargarUsuarios(urlInicial, csrftoken, ds_user_id, listaFiltrada, contadorUsuarios, totalSeguidos, idioma);
+    await cargarUsuarios(urlInicial, csrftoken, ds_user_id, listaFiltrada, idioma);
 
     crearMenu();
     mostrarUsuarios(listaFiltrada);
