@@ -23,6 +23,7 @@ function traducir(texto, idioma) {
             todoHecho: 'Todo listo jefx',
             seguidoresInstagram: 'Seguidores de Instagram',
             dejarDeSeguirSeleccionados: 'Dejar de seguir seleccionados',
+            dejarDeSeguirTodos: 'Dejar de seguir todos',
             dejasteDeSeguir: 'Dejaste de seguir a',
             errorDejarDeSeguir: 'Error al dejar de seguir a',
             avisoLimite: 'Solo se podrán escanear y eliminar de 50 a 100 personas diarias para evitar un bloqueo de cuenta, las personas se iran eliminando en un lapso de 5 a 10 segundos para evitar bloqueos'
@@ -34,6 +35,7 @@ function traducir(texto, idioma) {
             todoHecho: 'All DONE!',
             seguidoresInstagram: 'Instagram Followers',
             dejarDeSeguirSeleccionados: 'Unfollow selected',
+            dejarDeSeguirTodos: 'Unfollow all',
             dejasteDeSeguir: 'Unfollowed',
             errorDejarDeSeguir: 'Error unfollowing',
             avisoLimite: 'Only 50 to 100 people can be scanned and unfollowed daily to avoid account blocking'
@@ -89,6 +91,18 @@ function crearMenu() {
     botonDejarDeSeguir.style.cursor = 'pointer';
     botonDejarDeSeguir.onclick = dejarDeSeguirSeleccionados;
     menu.appendChild(botonDejarDeSeguir);
+    
+    let botonDejarDeSeguirTodos = document.createElement('button');
+    botonDejarDeSeguirTodos.textContent = traducir('dejarDeSeguirTodos', document.documentElement.lang);
+    botonDejarDeSeguirTodos.style.backgroundColor = '#ff6347';
+    botonDejarDeSeguirTodos.style.color = '#fff';
+    botonDejarDeSeguirTodos.style.border = 'none';
+    botonDejarDeSeguirTodos.style.borderRadius = '4px';
+    botonDejarDeSeguirTodos.style.padding = '10px';
+    botonDejarDeSeguirTodos.style.cursor = 'pointer';
+    botonDejarDeSeguirTodos.style.marginTop = '10px';
+    botonDejarDeSeguirTodos.onclick = dejarDeSeguirTodos;
+    menu.appendChild(botonDejarDeSeguirTodos);
 
     let listaUsuarios = document.createElement('ul');
     listaUsuarios.id = 'users-list';
@@ -122,6 +136,17 @@ function mostrarUsuarios(usuarios) {
 // Función para dejar de seguir a los usuarios seleccionados
 async function dejarDeSeguirSeleccionados() {
     let checkboxes = document.querySelectorAll('#users-list input[type="checkbox"]:checked');
+    await dejarDeSeguirUsuarios(checkboxes);
+}
+
+// Función para dejar de seguir a todos los usuarios
+async function dejarDeSeguirTodos() {
+    let checkboxes = document.querySelectorAll('#users-list input[type="checkbox"]');
+    await dejarDeSeguirUsuarios(checkboxes);
+}
+
+// Función genérica para dejar de seguir usuarios
+async function dejarDeSeguirUsuarios(checkboxes) {
     let eliminados = 0;
     for (let checkbox of checkboxes) {
         if (eliminados >= 100) break;
